@@ -3,6 +3,8 @@
 #include <QTextStream>
 #include <QMapIterator>
 #include <QRect>
+#include <QSettings>
+#include <QCollator>
 
 #include "outputgen.h"
 #include "camres.h"
@@ -166,6 +168,27 @@ void OutputGen::makeCamhw(const QList<QPair<QString, int> > &cameras,
         }
 
         QString camKey = cameras.at(i).first.left(3).toUpper();
+        QString confFileName("/etc/gst-droid/gstdroidcamsrc-" + QString::number(i) + ".conf");
+        if (QFile(confFileName).exists())
+        {
+            QSettings confFile(confFileName, QSettings::IniFormat);
+            confFile.beginGroup("iso-speed");
+            if (confFile.allKeys().size() > 0)
+            {
+                QStringList isoSpeeds(confFile.allKeys());
+                QCollator coll; coll.setNumericMode(true);
+                qSort( isoSpeeds.begin(), isoSpeeds.end(),
+                [&coll](const QString &s1, const QString &s2)
+                {
+                    return coll.compare(s1, s2) < 0;
+                });
+                map.insert("@"+camKey+"ISO@", "["+isoSpeeds.join(", ")+"]");
+            }
+            confFile.endGroup();
+        }
+
+        if (!map.contains("@"+camKey+"ISO@")) map.insert("@"+camKey+"ISO@", "[0, 100, 200, 400]");
+
         for (j=0 ; j<resolutions.at(i).size() ; j++)
         {
             QString resType = resolutions.at(i).at(j).first;
