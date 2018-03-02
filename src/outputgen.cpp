@@ -162,6 +162,7 @@ void OutputGen::makeCamhw(const QList<QPair<QString, int> > &cameras,
             continue;
         }
 
+        QString camKey = cameras.at(i).first.left(3).toUpper();
         for (j=0 ; j<resolutions.at(i).size() ; j++)
         {
             QStringList res = resolutions.at(i).at(j).second;
@@ -175,40 +176,38 @@ void OutputGen::makeCamhw(const QList<QPair<QString, int> > &cameras,
                         qMax(screenGeometry.height(), screenGeometry.width()) >=
                         qMax(res.at(m).split("x").at(0).toInt(), res.at(m).split("x").at(1).toInt()))
                     {
-                        if (Camres::aspectRatioForResolution(res.at(m)).compare("4:3") == 0 && map.value("@VF43RES@").isEmpty())
+                        if (Camres::aspectRatioForResolution(res.at(m)).compare("4:3") == 0 && map.value("@" + camKey + "VF43RES@").isEmpty())
                         {
-                            map.insert("@VF43RES@", res.at(m));
+                            map.insert("@" + camKey + "VF43RES@", res.at(m));
                         }
-                        else if (Camres::aspectRatioForResolution(res.at(m)).compare("16:9") == 0 && map.value("@VF169RES@").isEmpty())
+                        else if (Camres::aspectRatioForResolution(res.at(m)).compare("16:9") == 0 && map.value("@" + camKey + "VF169RES@").isEmpty())
                         {
-                            map.insert("@VF169RES@", res.at(m));
+                            map.insert("@" + camKey + "VF169RES@", res.at(m));
                         }
                     }
                 }
             }
             else if (resolutions.at(i).at(j).first.startsWith("image"))
             {
-                QString cam = cameras.at(i).first.left(3).toUpper();
                 for (m=0 ; m<res.size() ; m++)
                 {
-                    if (Camres::aspectRatioForResolution(res.at(m)).compare("4:3") == 0 && map.value("@" + cam + "IMAGE43RES@").isEmpty())
+                    if (Camres::aspectRatioForResolution(res.at(m)).compare("4:3") == 0 && map.value("@" + camKey + "IMAGE43RES@").isEmpty())
                     {
-                        map.insert("@" + cam + "IMAGE43RES@", res.at(m));
+                        map.insert("@" + camKey + "IMAGE43RES@", res.at(m));
                     }
-                    else if (Camres::aspectRatioForResolution(res.at(m)).compare("16:9") == 0 && map.value("@" + cam + "IMAGE169RES@").isEmpty())
+                    else if (Camres::aspectRatioForResolution(res.at(m)).compare("16:9") == 0 && map.value("@" + camKey + "IMAGE169RES@").isEmpty())
                     {
-                        map.insert("@" + cam + "IMAGE169RES@", res.at(m));
+                        map.insert("@" + camKey + "IMAGE169RES@", res.at(m));
                     }
                 }
             }
             else if (resolutions.at(i).at(j).first.startsWith("video"))
             {
-                QString cam = cameras.at(i).first.left(3).toUpper();
                 for (m=0 ; m<res.size() ; m++)
                 {
-                    if (Camres::aspectRatioForResolution(res.at(m)).compare("16:9") == 0 && map.value("@" + cam + "VIDEORES@").isEmpty())
+                    if (Camres::aspectRatioForResolution(res.at(m)).compare("16:9") == 0 && map.value("@" + camKey + "VIDEORES@").isEmpty())
                     {
-                        map.insert("@" + cam + "VIDEORES@", res.at(m));
+                        map.insert("@" + camKey + "VIDEORES@", res.at(m));
                     }
                 }
             }
