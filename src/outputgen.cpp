@@ -92,13 +92,16 @@ void OutputGen::makeJson(const QList<QPair<QString, int> > &cameras,
             QStringList res = resolutions.at(i).at(j).second;
 
             *ts << S(8) << "\"" << resolutions.at(i).at(j).first.split("-").first().toLower() << "\":" << endl << S(8) << "[" << endl;
-
+            QStringList repeatCheck;
             for (m=0 ; m<res.size() ; m++)
             {
-                *ts << S(12) << "{ \"resolution\": \"" << res.at(m) << "\", "
-                   << "\"viewFinder\": \"" << Camres::findBestViewFinderForResolution(res.at(m), resolutions.at(i), screenGeometry) << "\", "
-                   << "\"aspectRatio\": \"" << Camres::aspectRatioForResolution(res.at(m)) << "\" }"
+                QString thisRes = res.at(m).split('@').first();
+                if (repeatCheck.contains(thisRes)) continue;
+                *ts << S(12) << "{ \"resolution\": \"" << thisRes << "\", "
+                   << "\"viewFinder\": \"" << Camres::findBestViewFinderForResolution(thisRes, resolutions.at(i), screenGeometry) << "\", "
+                   << "\"aspectRatio\": \"" << Camres::aspectRatioForResolution(thisRes) << "\" }"
                    << ((m == res.size()-1) ? "" : ",") << endl;
+                repeatCheck << thisRes;
             }
 
             *ts << S(8) << "]";
@@ -165,49 +168,75 @@ void OutputGen::makeCamhw(const QList<QPair<QString, int> > &cameras,
         QString camKey = cameras.at(i).first.left(3).toUpper();
         for (j=0 ; j<resolutions.at(i).size() ; j++)
         {
+            QString resType = resolutions.at(i).at(j).first;
             QStringList res = resolutions.at(i).at(j).second;
+            QString prefix;
+            bool isVideo = false;
 
-            if (resolutions.at(i).at(j).first.startsWith("viewfinder"))
+            if (resType.startsWith("viewfinder"))
             {
-                for (m=0 ; m<res.size() ; m++)
-                {
-                    if (qMin(screenGeometry.height(), screenGeometry.width()) >=
-                        qMin(res.at(m).split("x").at(0).toInt(), res.at(m).split("x").at(1).toInt()) &&
-                        qMax(screenGeometry.height(), screenGeometry.width()) >=
-                        qMax(res.at(m).split("x").at(0).toInt(), res.at(m).split("x").at(1).toInt()))
-                    {
-                        if (Camres::aspectRatioForResolution(res.at(m)).compare("4:3") == 0 && map.value("@" + camKey + "VF43RES@").isEmpty())
-                        {
-                            map.insert("@" + camKey + "VF43RES@", res.at(m));
-                        }
-                        else if (Camres::aspectRatioForResolution(res.at(m)).compare("16:9") == 0 && map.value("@" + camKey + "VF169RES@").isEmpty())
-                        {
-                            map.insert("@" + camKey + "VF169RES@", res.at(m));
-                        }
-                    }
-                }
+                prefix = "@" + camKey + "VF";
             }
-            else if (resolutions.at(i).at(j).first.startsWith("image"))
+            else if (resType.startsWith("image"))
             {
-                for (m=0 ; m<res.size() ; m++)
-                {
-                    if (Camres::aspectRatioForResolution(res.at(m)).compare("4:3") == 0 && map.value("@" + camKey + "IMAGE43RES@").isEmpty())
-                    {
-                        map.insert("@" + camKey + "IMAGE43RES@", res.at(m));
-                    }
-                    else if (Camres::aspectRatioForResolution(res.at(m)).compare("16:9") == 0 && map.value("@" + camKey + "IMAGE169RES@").isEmpty())
-                    {
-                        map.insert("@" + camKey + "IMAGE169RES@", res.at(m));
-                    }
-                }
+                prefix = "@" + camKey + "IMAGE";
             }
-            else if (resolutions.at(i).at(j).first.startsWith("video"))
+            else if (resType.startsWith("video"))
             {
-                for (m=0 ; m<res.size() ; m++)
+                prefix = "@" + camKey + "VIDEO";
+                isVideo = true;
+            }
+            else continue; // unknown resolution type
+
+            QMap<QString, int> sizes;
+            int topFramerate = 0;
+            for (m=0 ; m<res.size() ; m++)
+            {
+                QList<QString> resBits = res.at(m).split(QRegExp("[x@\\-\\/]"));
+                int size = resBits.at(0).toInt() * resBits.at(1).toInt();
+                if (!resType.startsWith("viewfinder") || (
+                    qMin(screenGeometry.height(), screenGeometry.width()) >=
+                    qMin(resBits.at(0).toInt(), resBits.at(1).toInt()) &&
+                    qMax(screenGeometry.height(), screenGeometry.width()) >=
+                    qMax(resBits.at(0).toInt(), resBits.at(1).toInt())))
                 {
-                    if (Camres::aspectRatioForResolution(res.at(m)).compare("16:9") == 0 && map.value("@" + camKey + "VIDEORES@").isEmpty())
+                    QString aspect = "";
+                    if (Camres::aspectRatioForResolution(res.at(m)).compare("4:3") == 0)
                     {
-                        map.insert("@" + camKey + "VIDEORES@", res.at(m));
+                        if (isVideo) continue;
+                        aspect = "43";
+                    }
+                    else if (Camres::aspectRatioForResolution(res.at(m)).compare("16:9") == 0)
+                    {
+                        if (!isVideo) aspect = "169";
+                    }
+                    else continue;
+                    int framerate = 0;
+                    if (isVideo)
+                    {
+                        switch (resBits.size())
+                        {
+                        case 4:
+                            framerate = resBits.at(2).toInt()/resBits.at(3).toInt();
+                            break;
+                        case 6: // take the top of the range
+                            framerate = resBits.at(4).toInt()/resBits.at(5).toInt();
+                            break;
+                        default:
+                            // video framerate without fps. skip
+                            continue;
+                        }
+                    }
+                    QString key = prefix + aspect + "RES@";
+                    if ((map.value(key).isEmpty() || size >= sizes.value(key)) && framerate >= topFramerate)
+                    {
+                        map.insert(key, resBits.at(0)+"x"+resBits.at(1));
+                        sizes.insert(key, size);
+                        if (isVideo)
+                        {
+                            map.insert(prefix+"FPS@", QString::number(framerate));
+                            topFramerate = framerate;
+                        }
                     }
                 }
             }

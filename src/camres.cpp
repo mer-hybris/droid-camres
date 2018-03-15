@@ -169,6 +169,7 @@ QStringList Camres::parse(GstCaps *caps)
         const GstStructure *s = gst_caps_get_structure(caps, x);
         const GValue *width = gst_structure_get_value(s, "width");
         const GValue *height = gst_structure_get_value(s, "height");
+        const GValue *fps = gst_structure_get_value(s, "framerate");
 
         if (!width || !height)
         {
@@ -177,49 +178,41 @@ QStringList Camres::parse(GstCaps *caps)
 
         bool width_is_list = GST_VALUE_HOLDS_LIST(width) ? true : false;
         bool height_is_list = GST_VALUE_HOLDS_LIST(height) ? true : false;
+        bool fps_is_list = GST_VALUE_HOLDS_LIST(fps) ? true : false;
 
-        if (!width_is_list && !height_is_list)
+        for (guint wc = 0; wc == 0 || (width_is_list && wc < gst_value_list_get_size(width)); wc++)
         {
-            tmp = QString("%1x%2").arg(g_value_get_int(width)).arg(g_value_get_int(height));
-            if (!res.contains(tmp))
-                res.append(tmp);
-        }
-        else if (width_is_list && height_is_list)
-        {
-            guint ws = gst_value_list_get_size(width);
-            guint hs = gst_value_list_get_size(width);
-            for (guint wc = 0; wc < ws; wc++)
+            int w = g_value_get_int(width_is_list?gst_value_list_get_value(width, wc): width);
+            for (guint hc = 0; hc == 0 || (height_is_list && hc < gst_value_list_get_size(height)); hc++)
             {
-                int w = g_value_get_int(gst_value_list_get_value(width, wc));
-                for (guint hc = 0; hc < hs; hc++)
+                int h = g_value_get_int(height_is_list?gst_value_list_get_value(height, hc): height);
+                for (guint fc = 0; fc == 0 || (fps_is_list && fc < gst_value_list_get_size(fps)); fc++)
                 {
-                    int h = g_value_get_int(gst_value_list_get_value(height, hc));
-                    tmp = QString("%1x%2").arg(w).arg(h);
+                    const GValue *fps_val = fps_is_list?gst_value_list_get_value(fps, fc): fps;
+                    if (GST_VALUE_HOLDS_FRACTION(fps_val))
+                    {
+                        tmp = QString("%1x%2@%3/%4").arg(w).arg(h)
+                            .arg(gst_value_get_fraction_numerator(fps_val))
+                            .arg(gst_value_get_fraction_denominator(fps_val));
+                    }
+                    else if (GST_VALUE_HOLDS_FRACTION_RANGE(fps_val))
+                    {
+                        const GValue *fps_min = gst_value_get_fraction_range_min(fps_val);
+                        const GValue *fps_max = gst_value_get_fraction_range_max(fps_val);
+                        tmp = QString("%1x%2@%3/%4-%5/%6").arg(w).arg(h)
+                            .arg(gst_value_get_fraction_numerator(fps_min))
+                            .arg(gst_value_get_fraction_denominator(fps_min))
+                            .arg(gst_value_get_fraction_numerator(fps_max))
+                            .arg(gst_value_get_fraction_denominator(fps_max));
+                    }
+                    else
+                    {
+                        fprintf(stderr, "Camres error: Unknown framerate type\n");
+                        tmp = QString("%1x%2").arg(w).arg(h);
+                    }
                     if (!res.contains(tmp))
                         res.append(tmp);
                 }
-            }
-        }
-        else if (width_is_list)
-        {
-            int h = g_value_get_int(height);
-            for (guint i = 0; i < gst_value_list_get_size(width); i++)
-            {
-                int w = g_value_get_int(gst_value_list_get_value(width, i));
-                tmp = QString("%1x%2").arg(w).arg(h);
-                if (!res.contains(tmp))
-                    res.append(tmp);
-            }
-        }
-        else if (height_is_list)
-        {
-            int w = g_value_get_int(width);
-            for (guint i = 0; i < gst_value_list_get_size(height); i++)
-            {
-                int h = g_value_get_int(gst_value_list_get_value(height, i));
-                tmp = QString("%1x%2").arg(w).arg(h);
-                if (!res.contains(tmp))
-                    res.append(tmp);
             }
         }
     }
@@ -232,11 +225,13 @@ QString Camres::aspectRatioForResolution(const QString& size)
     static QMap<float, QString> ratios;
     int width, height;
 
-    width = size.split("x").at(0).toInt();
-    height = size.split("x").at(1).toInt();
+    width = size.split(QRegExp("[x@]")).at(0).toInt();
+    height = size.split(QRegExp("[x@]")).at(1).toInt();
 
     if (ratios.isEmpty())
     {
+        ratios[0.7] = "3:4";
+        ratios[0.8] = "4:5";
         ratios[1.0] = "1:1";
         ratios[1.2] = "5:4";
         ratios[1.3] = "4:3";
@@ -274,8 +269,8 @@ QString Camres::findBestViewFinderForResolution(const QString& size, const QList
         {
             for (m=0 ; m<resolutions.at(j).second.size(); m++)
             {
-                width = resolutions.at(j).second.at(m).split("x").at(0).toInt();
-                height = resolutions.at(j).second.at(m).split("x").at(1).toInt();
+                width = resolutions.at(j).second.at(m).split(QRegExp("[x@]")).at(0).toInt();
+                height = resolutions.at(j).second.at(m).split(QRegExp("[x@]")).at(1).toInt();
 
                 if (qMin(screenGeometry.height(), screenGeometry.width()) >=
                     qMin(width, height) &&
@@ -284,7 +279,7 @@ QString Camres::findBestViewFinderForResolution(const QString& size, const QList
                 {
                     if (Camres::aspectRatioForResolution(resolutions.at(j).second.at(m)).compare(Camres::aspectRatioForResolution(size)) == 0)
                     {
-                        return resolutions.at(j).second.at(m);
+                        return resolutions.at(j).second.at(m).split('@').first();
                     }
                 }
             }
