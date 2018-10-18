@@ -3,7 +3,6 @@
 #include <QtGlobal>
 #include <QScreen>
 
-#include <sailfishapp.h>
 #include "camres.h"
 #include "outputgen.h"
 
