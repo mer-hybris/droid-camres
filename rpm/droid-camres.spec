@@ -1,10 +1,9 @@
-Name:      droid-camres
-
-
 %{!?qtc_qmake:%define qtc_qmake %qmake}
 %{!?qtc_qmake5:%define qtc_qmake5 %qmake5}
 %{!?qtc_make:%define qtc_make make}
 %{?qtc_builddir:%define _builddir %qtc_builddir}
+
+Name:       droid-camres
 Summary:    Droid Camera resolutions
 Version:    0.0.local
 Release:    1
@@ -37,6 +36,5 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%{_bindir}
+%{_bindir}/*
 %{_datadir}/%{name}
-

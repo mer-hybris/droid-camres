@@ -244,7 +244,7 @@ QString Camres::aspectRatioForResolution(const QString& size)
     float r = (width * 1.0) / height;
     r = floor(r * 10) / 10.0;
 
-    for (QMap<float, QString>::const_iterator iter = ratios.constBegin(); iter != ratios.constEnd(); iter++)
+    for (QMap<float, QString>::const_iterator iter = ratios.constBegin(); iter != ratios.constEnd(); ++iter)
     {
         if (qFuzzyCompare (r, iter.key()))
         {
