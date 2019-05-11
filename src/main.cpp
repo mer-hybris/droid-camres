@@ -89,7 +89,11 @@ int main(int argc, char *argv[])
     for (i=0 ; i<cameras.size() ; i++)
     {
         fprintf(stderr, "Searching resolutions for %s...\n", qPrintable(cameras.at(i).first));
-        resolutions.append(cr.getResolutions(cameras.at(i).second, caps));
+        QList<QPair<QString, QStringList> > res = cr.getResolutions(cameras.at(i).second, caps);
+        if (res.isEmpty())
+            return EXIT_FAILURE;
+
+        resolutions.append(res);
     }
 
     fprintf(stderr, "\n");
