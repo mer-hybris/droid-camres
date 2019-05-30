@@ -98,7 +98,8 @@ int main(int argc, char *argv[])
 
     OutputGen og;
 
-    og.dump(cameras, resolutions);
+    if (jsonFilename.isEmpty() && camhwFilename.isEmpty())
+        og.dump(cameras, resolutions);
 
     if (!jsonFilename.isEmpty())
         og.makeJson(cameras, resolutions, app.primaryScreen()->availableGeometry(), jsonFilename);
