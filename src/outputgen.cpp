@@ -24,21 +24,21 @@ void OutputGen::dump(const QList<QPair<QString, int> > &cameras, const QList<QLi
     {
         if (resolutions.at(i).isEmpty())
         {
-            fprintf(stderr, "Camres warning: No resolutions found for %s (%d):\n", qPrintable(cameras.at(i).first), cameras.at(i).second);
+            qCritical("Camres warning: No resolutions found for %s (%d):", qPrintable(cameras.at(i).first), cameras.at(i).second);
             continue;
         }
 
-        printf("Resolutions for %s:\n", qPrintable(cameras.at(i).first));
+        qInfo("\nResolutions for %s:", qPrintable(cameras.at(i).first));
 
         for (j=0 ; j<resolutions.at(i).size() ; j++)
         {
-            printf("%s resolutions:\n", qPrintable(resolutions.at(i).at(j).first.split("-").first()));
+            qInfo("%s resolutions:", qPrintable(resolutions.at(i).at(j).first.split("-").first()));
 
             QStringList res = resolutions.at(i).at(j).second;
 
             for (m=0 ; m<res.size() ; m++)
             {
-                printf("%s (%s)\n", qPrintable(res.at(m)), qPrintable(Camres::aspectRatioForResolution(res.at(m))));
+                qInfo("%s (%s)", qPrintable(res.at(m)), qPrintable(Camres::aspectRatioForResolution(res.at(m))));
             }
         }
     }
@@ -57,13 +57,13 @@ void OutputGen::makeJson(const QList<QPair<QString, int> > &cameras,
 
     if ( !file.open(QIODevice::ReadWrite | QIODevice::Truncate | QIODevice::Text))
     {
-        fprintf(stderr, "Camres error: Could not create output file.\n");
+        qCritical("Camres error: Could not create output file.");
         return;
     }
 
     ts = new QTextStream(&file);
 
-    fprintf(stderr, "Camres: Writing json to file %s\n", qPrintable(file.fileName()));
+    qInfo("Camres: Writing json to file %s", qPrintable(file.fileName()));
 
     *ts << "{" << endl;
 
@@ -132,20 +132,20 @@ void OutputGen::makeCamhw(const QList<QPair<QString, int> > &cameras,
 
     if ( !file.open(QIODevice::ReadWrite | QIODevice::Truncate | QIODevice::Text))
     {
-        fprintf(stderr, "Camres error: Could not create output file.\n");
+        qCritical("Camres error: Could not create output file.");
         return;
     }
 
     ts = new QTextStream(&file);
 
-    fprintf(stderr, "Camres: Writing dconf settings to file %s\n", qPrintable(file.fileName()));
+    qInfo("Camres: Writing dconf settings to file %s", qPrintable(file.fileName()));
 
     QFile resfile("/usr/share/droid-camres/jolla-camera-hw-template.txt");
     QStringList camhwTemplate;
 
     if (!resfile.open(QIODevice::ReadOnly | QIODevice::Text))
     {
-        fprintf(stderr, "Camres error: failed to open template\n");
+        qCritical("Camres error: failed to open template");
         return;
     }
 
@@ -249,7 +249,7 @@ void OutputGen::makeCamhw(const QList<QPair<QString, int> > &cameras,
     {
         k.next();
         if (k.value().isEmpty())
-            fprintf(stderr, "Camres error: Not found suitable resolution for %s. Check output!\n", qPrintable(k.key()));
+            qCritical("Camres error: Not found suitable resolution for %s. Check output!", qPrintable(k.key()));
         else
             camhwTemplate.replaceInStrings(k.key(), k.value());
     }
