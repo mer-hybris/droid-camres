@@ -25,21 +25,21 @@ QList<QPair<QString, int> > Camres::getCameras()
     GstElement *elem = gst_element_factory_make("droidcamsrc", NULL);
     if (!elem)
     {
-        fprintf(stderr, "Camres error: Failed to create an instance of droidcamsrc.\n");
+        qCritical("Camres error: Failed to create an instance of droidcamsrc.");
         return res;
     }
 
     GParamSpec *spec = g_object_class_find_property(G_OBJECT_GET_CLASS(elem), "camera-device");
     if (!spec)
     {
-        fprintf(stderr, "Camres error: Failed to get property camera-device\n");
+        qCritical("Camres error: Failed to get property camera-device");
         gst_object_unref(elem);
         return res;
     }
 
     if (!G_IS_PARAM_SPEC_ENUM(spec))
     {
-        fprintf(stderr, "Camres error: Property camera-device is not an enum.\n");
+        qCritical("Camres error: Property camera-device is not an enum.");
         gst_object_unref(elem);
         return res;
     }
@@ -70,14 +70,14 @@ QList<QPair<QString, QStringList> > Camres::getResolutions(int cam, QStringList 
 
     if (!cameraBin)
     {
-        fprintf(stderr, "Camres error: Failed to create camerabin.\n");
+        qCritical("Camres error: Failed to create camerabin.");
         return res;
     }
 
     GstElement *videoSource = gst_element_factory_make("droidcamsrc", NULL);
     if (!videoSource)
     {
-        fprintf(stderr, "Camres error: Failed to create videoSource.\n");
+        qCritical("Camres error: Failed to create videoSource.");
         gst_object_unref(cameraBin);
         return res;
     }
@@ -89,7 +89,7 @@ QList<QPair<QString, QStringList> > Camres::getResolutions(int cam, QStringList 
     if (!fakeviewfinder)
     {
         {
-            fprintf(stderr, "Camres error: Failed to create fake viewfinder.\n");
+            qCritical("Camres error: Failed to create fake viewfinder.");
             gst_object_unref(videoSource);
             gst_object_unref(cameraBin);
             return res;
@@ -103,7 +103,7 @@ QList<QPair<QString, QStringList> > Camres::getResolutions(int cam, QStringList 
 
     if (!target)
     {
-        fprintf(stderr, "Camres error: Failed to load encoding target: %s\n", qPrintable(error->message));
+        qCritical("Camres error: Failed to load encoding target: %s", qPrintable(error->message));
         g_error_free(error);
         gst_object_unref(fakeviewfinder);
         gst_object_unref(videoSource);
@@ -114,7 +114,7 @@ QList<QPair<QString, QStringList> > Camres::getResolutions(int cam, QStringList 
     GstEncodingProfile *profile = gst_encoding_target_get_profile(target, "video-profile");
     if (!profile)
     {
-        fprintf(stderr, "Camres error: Failed to load encoding profile.\n");
+        qCritical("Camres error: Failed to load encoding profile.");
         gst_object_unref(fakeviewfinder);
         gst_object_unref(videoSource);
         gst_object_unref(cameraBin);
@@ -128,7 +128,7 @@ QList<QPair<QString, QStringList> > Camres::getResolutions(int cam, QStringList 
 
     if (gst_element_set_state (GST_ELEMENT (cameraBin), GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE)
     {
-        fprintf(stderr, "Camres error: Failed to start playback.\n");
+        qCritical("Camres error: Failed to start playback.");
         gst_object_unref(fakeviewfinder);
         gst_object_unref(videoSource);
         gst_object_unref(cameraBin);
@@ -207,7 +207,7 @@ QStringList Camres::parse(GstCaps *caps)
                     }
                     else
                     {
-                        fprintf(stderr, "Camres error: Unknown framerate type\n");
+                        qWarning("Camres error: Unknown framerate type");
                         tmp = QString("%1x%2").arg(w).arg(h);
                     }
                     if (!res.contains(tmp))
@@ -252,7 +252,7 @@ QString Camres::aspectRatioForResolution(const QString& size)
         }
     }
 
-    fprintf(stderr, "Camres error: Could not find aspect ratio for %dx%d\n", width, height);
+    qWarning("Camres error: Could not find aspect ratio for %dx%d", width, height);
 
     return QString("?:?");
 }
@@ -286,7 +286,7 @@ QString Camres::findBestViewFinderForResolution(const QString& size, const QList
         }
     }
 
-    fprintf(stderr, "Camres error: Could not find viewfinder for %s\n", qPrintable(size));
+    qCritical("Camres error: Could not find viewfinder for %s", qPrintable(size));
 
     return QString("?:?");
 }

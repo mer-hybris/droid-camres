@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
     int genCamhw = 0;
     bool printUsage = true;
 
-    fprintf(stderr, "Camres version %s\n", APP_VERSION);
+    qInfo("Camres version %s", APP_VERSION);
 
     if (argc == 1)
         printUsage = false;
@@ -59,9 +59,9 @@ int main(int argc, char *argv[])
 
     if (printUsage)
     {
-        fprintf(stderr, "Usage: camres [OPTION]\n\n");
-        fprintf(stderr, "  -o [filename]       Generate json for camera-settings-plugin\n");
-        fprintf(stderr, "  -w [filename]       Generate dconf for jolla-camera-hw.txt\n");
+        qInfo("Usage: camres [OPTION]\n");
+        qInfo("  -o [filename]       Generate json for camera-settings-plugin");
+        qInfo("  -w [filename]       Generate dconf for jolla-camera-hw.txt");
 
         return EXIT_FAILURE;
     }
@@ -69,13 +69,13 @@ int main(int argc, char *argv[])
     int i;
     Camres cr;
 
-    fprintf(stderr, "Searching cameras...\n");
+    qInfo("Searching cameras...");
 
     QList<QPair<QString, int> > cameras = cr.getCameras();
 
     if (cameras.isEmpty())
     {
-        fprintf(stderr, "Camres error: No cameras found.\n");
+        qFatal("Camres error: No cameras found.");
         return EXIT_FAILURE;
     }
 
@@ -88,15 +88,13 @@ int main(int argc, char *argv[])
 
     for (i=0 ; i<cameras.size() ; i++)
     {
-        fprintf(stderr, "Searching resolutions for %s...\n", qPrintable(cameras.at(i).first));
+        qInfo("Searching resolutions for %s...", qPrintable(cameras.at(i).first));
         QList<QPair<QString, QStringList> > res = cr.getResolutions(cameras.at(i).second, caps);
         if (res.isEmpty())
             return EXIT_FAILURE;
 
         resolutions.append(res);
     }
-
-    fprintf(stderr, "\n");
 
     OutputGen og;
 
