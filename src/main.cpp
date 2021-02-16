@@ -14,6 +14,7 @@ int main(int argc, char *argv[])
     int genJson = 0;
     int genCamhw = 0;
     bool printUsage = true;
+    bool exitError = false;
 
     qInfo("Camres version %s", APP_VERSION);
 
@@ -25,6 +26,8 @@ int main(int argc, char *argv[])
         int i;
         for (i=1 ; i < argc ; i++)
         {
+            if (QString(argv[i]).compare("-e") == 0)
+                exitError = true;
             if (QString(argv[i]).compare("-o") == 0)
                 genJson = i;
             if (QString(argv[i]).compare("-w") == 0)
@@ -60,6 +63,7 @@ int main(int argc, char *argv[])
     if (printUsage)
     {
         qInfo("Usage: camres [OPTION]\n");
+        qInfo("  -e                  Exit with error code if resolutions are not found");
         qInfo("  -o [filename]       Generate json for camera-settings-plugin");
         qInfo("  -w [filename]       Generate dconf for jolla-camera-hw.txt");
 
@@ -90,6 +94,9 @@ int main(int argc, char *argv[])
     {
         qInfo("Searching resolutions for %s...", qPrintable(cameras.at(i).first));
         QList<QPair<QString, QStringList> > res = cr.getResolutions(cameras.at(i).second, caps);
+
+        if (exitError && res.isEmpty())
+            return EXIT_FAILURE;
 
         resolutions.append(res);
     }
